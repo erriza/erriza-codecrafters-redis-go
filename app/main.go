@@ -36,9 +36,9 @@ func handleConnection(conn net.Conn) {
 
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
-		text:= scanner.Text()
+		text := scanner.Text()
 		if strings.TrimSpace(text) == "PING" {
-			conn.Write([]byte("PONG\r\n"))
+			conn.Write([]byte("+PONG\r\n"))
 		}
 	}
 
