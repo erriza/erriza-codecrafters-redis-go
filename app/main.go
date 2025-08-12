@@ -96,31 +96,34 @@ func handleSet(args []string, conn net.Conn)  {
 	
 }
 
-func handleGET (args []string, conn net.Conn) {
-	if len(args) < 2 {
-		conn.Write([]byte("-ERR wrong number of arguments for 'GET'"))
-	}
-	
-	key := args[1]
-	mu.RLock()
-	e, exists := store[key]
-	mu.RUnlock()
+func handleGET(args []string, conn net.Conn) {
+    if len(args) < 2 {
+        conn.Write([]byte("-ERR wrong number of arguments for 'GET'\r\n"))
+        return
+    }
 
-	if !exists {
-		conn.Write([]byte("$-1\r\n"))
-		return
-	}
+    key := args[1]
 
-	if e.expiresAt > 0 && time.Now().UnixMilli() > e.expiresAt {
-		mu.Lock()
-		delete(store, key)
-		mu.Unlock()
-		conn.Write([]byte("$-1\r\n"))
-		return
-	}
-	resp := fmt.Sprintf("$%d\r\n%s\r\n", len(e.value), e.value)
-	conn.Write([]byte(resp))
-	
+    mu.RLock()
+    e, exists := store[key]
+    mu.RUnlock()
+
+    if !exists {
+        conn.Write([]byte("$-1\r\n"))
+        return
+    }
+
+    if e.expiresAt > 0 && time.Now().UnixMilli() > e.expiresAt {
+        mu.Lock()
+        delete(store, key)
+        mu.Unlock()
+        conn.Write([]byte("$-1\r\n"))
+        return
+    }
+
+    // Return bulk string
+    resp := fmt.Sprintf("$%d\r\n%s\r\n", len(e.value), e.value)
+    conn.Write([]byte(resp))
 }
 
 func handleEcho (args []string, conn net.Conn) {
