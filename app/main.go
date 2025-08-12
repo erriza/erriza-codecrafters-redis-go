@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
@@ -34,6 +35,11 @@ func main() {
 }
 
 func handleConnection(conn net.Conn) {
+	var (
+		store = make(map[string]string)
+		mu sync.RWMutex
+	)
+
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
 
@@ -102,6 +108,35 @@ func handleConnection(conn net.Conn) {
 			} else {
 				conn.Write([]byte("$0\r\n\r\n"))
 			}
+		case "SET":
+			if len(args) >= 3 {
+				key := args[1]
+				value := args[2]
+
+				mu.Lock()
+				store[key] = value
+				mu.Unlock()
+				
+				conn.Write([]byte("+OK\r\n"))
+			} else {
+				conn.Write([]byte("-ERR wrong numebr of arguments for 'SET'\r\n"))
+			}
+		case "GET":
+			if len(args) >= 2 {
+				key := args[1]
+
+				mu.RLock()
+				value, exists := store[key]
+				mu.RUnlock()
+
+				if exists {
+					resp := fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)
+					conn.Write([]byte(resp))
+				} else {
+					conn.Write([]byte("-ERR wrong number of arguments for 'GET'"))
+				}
+			}
+
 		default:
 			conn.Write([]byte("-ERR unknown command\r\n"))
 		}
