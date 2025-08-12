@@ -44,28 +44,29 @@ func main() {
 }
 
 func handleConnection(conn net.Conn) {
+    defer conn.Close()
 
-	defer conn.Close()
+    for {
+        args := handleReader(conn)
+        if args == nil || len(args) == 0 {
+            return
+        }
 
-	args := handleReader(conn)
-	if len(args) == 0 {
-		return
-	}
+        cmd := strings.ToUpper(args[0])
 
-	cmd := strings.ToUpper(args[0])
-
-	switch cmd {
-	case "PING":
-		conn.Write([]byte("+PONG\r\n"))
-	case "ECHO":
-		handleEcho(args, conn)
-	case "SET":
-		handleSet(args, conn)
-	case "GET":
-		handleGET(args, conn)
-	default:
-		conn.Write([]byte("-ERR unknown command\r\n"))
-	}
+        switch cmd {
+        case "PING":
+            conn.Write([]byte("+PONG\r\n"))
+        case "ECHO":
+            handleEcho(args, conn)
+        case "SET":
+            handleSet(args, conn)
+        case "GET":
+            handleGET(args, conn)
+        default:
+            conn.Write([]byte("-ERR unknown command\r\n"))
+        }
+    }
 }
 
 func handleSet(args []string, conn net.Conn)  {
