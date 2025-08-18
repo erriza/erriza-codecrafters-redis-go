@@ -21,6 +21,7 @@ type entry struct {
 }
 var (
 		store = make(map[string]entry)
+		listStore = make(map[string][]string)
 		mu sync.RWMutex
 )
 
@@ -63,11 +64,36 @@ func handleConnection(conn net.Conn) {
             handleSet(args, conn)
         case "GET":
             handleGET(args, conn)
+		case "RPUSH":
+			handleRPUSH(args, conn)
         default:
             conn.Write([]byte("-ERR unknown command\r\n"))
         }
     }
 }
+
+func handleRPUSH(args []string, conn net.Conn) {
+	if len(args) < 3 {
+		conn.Write([]byte("-ERR wrong number of arguments for 'RPUSH'\r\n"))
+		return
+	}
+
+	listName := args[1]
+	value := args[2]
+
+	mu.Lock()
+	if _, exists := listStore[listName]; !exists {
+		listStore[listName] = make([]string, 0)
+		elements :=len(listStore[listName])
+		conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
+	} else {
+		listStore[listName] = append(listStore[listName], value)
+		elements := len(listStore[listName])
+		conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
+	}
+	mu.Unlock()
+}
+
 
 func handleSet(args []string, conn net.Conn)  {
 
