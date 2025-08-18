@@ -79,24 +79,25 @@ func handleRPUSH(args []string, conn net.Conn) {
 	}
 
 	listName := args[1]
-	value := args[2]
+	values := args[2:]
 
 	mu.Lock()
 	if _, exists := listStore[listName]; !exists {
 		listStore[listName] = make([]string, 0)
-		listStore[listName] = append(listStore[listName], value)
+		listStore[listName] = append(listStore[listName], values...)
 		elements := len(listStore[listName])
 		conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
 		mu.Unlock()
 		return
 	} else {
-		listStore[listName] = append(listStore[listName], value)
+		for _, value := range values {
+			listStore[listName] = append(listStore[listName], value)
+		}
 		elements := len(listStore[listName])
 		conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
 		mu.Unlock()
 		return
 	}
-	
 }
 
 
