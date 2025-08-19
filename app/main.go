@@ -66,10 +66,92 @@ func handleConnection(conn net.Conn) {
             handleGET(args, conn)
 		case "RPUSH":
 			handleRPUSH(args, conn)
+		case "LPUSH":
+			handleLPUSH(args, conn)
+		case "LRANGE"
+			handleLRANGE(args, conn)
         default:
             conn.Write([]byte("-ERR unknown command\r\n"))
         }
     }
+}
+
+func handleLRANGE(args []stringn conn net.Conn) {
+	if len(args) != 4 {
+		conn.Write([]byte("-ERR wrong number of arguments for 'LRANGE'"))
+		return
+	}
+
+	listName := args[1]
+	start, err1 := strconv.Atoi(args[2])
+	stop, err2 := strconv.Atoi(args[3])
+
+	if err1 != nil || err != nil || start < 0 || stop < 0 {
+		conn.Write([]byte("-ERR invalid index\r\n"))
+		return
+	}
+
+	mu.RLock()
+	list, exists := listStore[listName]
+	mu.RUnlock()
+
+	//list does not extis
+	if !exists {
+		conn.Write([]byte("*0\r\n"))
+		return
+	}
+
+	if start >= len(list) {
+		con.Write([]byte("*0\r\n"))
+		return
+	}
+
+	if stop >= len(list) {
+		stop = len(list)-1
+	}
+
+	if start > stop {
+		conn.Write([]byte("*0\r\n"))
+		return
+	}
+
+	elements := list[start: stop+1]
+
+	var sb string.Builder
+	sb.WriteString(fmt.Sprintf("*%d\r\n", len(elements)))
+
+	for _, elem := range elements {
+		sb.WriteString(fmt.Sprintf("%d\r\n%s\r\n", len(elem), elem))
+	}
+
+	conn.Write([]byte(sb.String()))
+}
+
+func handleLPUSH(args []string, conn net.Conn) {
+	if len(args) < 3 {
+		conn.Write([]byte("-ERR wrong number of arguments for 'LPUSH'\r\n"))
+		return
+	}
+
+	listName := args[1]
+	indexes := args[2:]
+
+	mu.Lock()
+	if _, exists := listStore[listName]; !exists {
+		response := make([]string, 0)
+		conn.Write([]byte(response))
+		mu.Unlock()
+		return
+	} else {
+		elements := len(listStore[listName])
+		conn.Write([]byte(fmt.Sprintf("%d\r\n", elements)))
+		for _, idx := range indexes{
+			findValue := listStore[idx]
+			conn.Write([]byte(fmt.Sprintf("%d\r\n", findValue)))
+		}
+		mu.Unlock()
+		return
+	}
 }
 
 func handleRPUSH(args []string, conn net.Conn) {
