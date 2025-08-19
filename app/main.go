@@ -74,9 +74,33 @@ func handleConnection(conn net.Conn) {
 			handleLPUSH(args, conn)
 		case "LLEN":
 			handleLLEN(args, conn)
+		case "LPOP":
+			handleLPOP(args, conn)
 		default:
 			conn.Write([]byte("-ERR unknown command\r\n"))
 		}
+	}
+}
+
+func handleLPOP(args []string, conn net.Conn) {
+	if len(args) < 2 {
+		conn.Write([]byte("-ERR wrong number of arguments for 'LPOP'\r\n"))
+		return
+	}
+
+	listName := args[1]
+
+	mu.Lock()
+	if _, exists := listStore[listName]; !exists {
+		conn.Write([]byte("$-1\r\n"))
+		mu.Unlock()
+		return
+	} else {
+		popped := listStore[listName][0]
+		listStore[listName] = listStore[listName][1:]
+		conn.Write([]byte(fmt.Sprintf(":%s\r\n", popped)))
+		mu.Unlock()
+		return
 	}
 }
 
@@ -97,6 +121,7 @@ func handleLLEN(args []string, conn net.Conn) {
 		length := len(listStore[listName])
 		conn.Write([]byte(fmt.Sprintf(":%d\r\n", length)))
 		mu.Unlock()
+		return
 	}
 }
 
