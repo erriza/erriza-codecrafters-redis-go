@@ -86,6 +86,8 @@ func handleLRANGE(args []string, conn net.Conn) {
 	start, err1 := strconv.Atoi(args[2])
 	stop, err2 := strconv.Atoi(args[3])
 
+	fmt.Println("args start stop", start, stop)
+
 	if err1 != nil || err2 != nil || start < 0 || stop < 0 {
 		conn.Write([]byte("-ERR invalid index\r\n"))
 		return
