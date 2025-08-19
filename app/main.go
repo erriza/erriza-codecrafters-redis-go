@@ -72,9 +72,31 @@ func handleConnection(conn net.Conn) {
 			handleLRANGE(args, conn)
 		case "LPUSH":
 			handleLPUSH(args, conn)
+		case "LLEN":
+			handleLLEN(args, conn)
 		default:
 			conn.Write([]byte("-ERR unknown command\r\n"))
 		}
+	}
+}
+
+func handleLLEN(args []string, conn net.Conn) {
+	if len(args) < 2 {
+		conn.Write([]byte("-ERR wrong number of arguments for 'LLEN'\r\n"))
+		return
+	}
+
+	listName := args[1]
+
+	mu.Lock()
+	if _, exists := listStore[listName]; !exists {
+		conn.Write([]byte(fmt.Sprintf(":%d\r\n", 0)))
+		mu.Unlock()
+		return
+	} else {
+		length := len(listStore[listName])
+		conn.Write([]byte(fmt.Sprintf(":%d\r\n", length)))
+		mu.Unlock()
 	}
 }
 
