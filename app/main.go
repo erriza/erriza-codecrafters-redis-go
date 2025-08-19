@@ -115,6 +115,14 @@ func handleLRANGE(args []string, conn net.Conn) {
 		return
 	}
 
+	if start < 0 {
+		start = max(len(list)+start, 0)
+	}
+
+	if stop < 0 {
+		stop = max(len(list)+stop, 0)
+	}
+
 	elements := list[start : stop+1]
 
 	fmt.Println("idx", start, stop)
