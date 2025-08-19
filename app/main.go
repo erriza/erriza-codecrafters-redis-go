@@ -15,18 +15,20 @@ import (
 // Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
 var _ = net.Listen
 var _ = os.Exit
+
 type entry struct {
-	value 		string
-	expiresAt 	int64
+	value     string
+	expiresAt int64
 }
+
 var (
-		store = make(map[string]entry)
-		listStore = make(map[string][]string)
-		mu sync.RWMutex
+	store     = make(map[string]entry)
+	listStore = make(map[string][]string)
+	mu        sync.RWMutex
 )
 
 func main() {
-	
+
 	l, err := net.Listen("tcp", "0.0.0.0:6379")
 	if err != nil {
 		fmt.Println("Failed to bind to port 6379")
@@ -40,43 +42,43 @@ func main() {
 			os.Exit(1)
 		}
 		go handleConnection(conn)
-	
+
 	}
 }
 
 func handleConnection(conn net.Conn) {
-    defer conn.Close()
+	defer conn.Close()
 
-    for {
-        args := handleReader(conn)
-        if args == nil || len(args) == 0 {
-            return
-        }
+	for {
+		args := handleReader(conn)
+		if args == nil || len(args) == 0 {
+			return
+		}
 
-        cmd := strings.ToUpper(args[0])
+		cmd := strings.ToUpper(args[0])
 
-        switch cmd {
-        case "PING":
-            conn.Write([]byte("+PONG\r\n"))
-        case "ECHO":
-            handleEcho(args, conn)
-        case "SET":
-            handleSet(args, conn)
-        case "GET":
-            handleGET(args, conn)
+		switch cmd {
+		case "PING":
+			conn.Write([]byte("+PONG\r\n"))
+		case "ECHO":
+			handleEcho(args, conn)
+		case "SET":
+			handleSet(args, conn)
+		case "GET":
+			handleGET(args, conn)
 		case "RPUSH":
 			handleRPUSH(args, conn)
-		case "LPUSH":
-			handleLPUSH(args, conn)
-		case "LRANGE"
+		// case "LPUSH":
+		// 	handleLPUSH(args, conn)
+		case "LRANGE":
 			handleLRANGE(args, conn)
-        default:
-            conn.Write([]byte("-ERR unknown command\r\n"))
-        }
-    }
+		default:
+			conn.Write([]byte("-ERR unknown command\r\n"))
+		}
+	}
 }
 
-func handleLRANGE(args []stringn conn net.Conn) {
+func handleLRANGE(args []string, conn net.Conn) {
 	if len(args) != 4 {
 		conn.Write([]byte("-ERR wrong number of arguments for 'LRANGE'"))
 		return
@@ -86,7 +88,7 @@ func handleLRANGE(args []stringn conn net.Conn) {
 	start, err1 := strconv.Atoi(args[2])
 	stop, err2 := strconv.Atoi(args[3])
 
-	if err1 != nil || err != nil || start < 0 || stop < 0 {
+	if err1 != nil || err2 != nil || start < 0 || stop < 0 {
 		conn.Write([]byte("-ERR invalid index\r\n"))
 		return
 	}
@@ -102,12 +104,12 @@ func handleLRANGE(args []stringn conn net.Conn) {
 	}
 
 	if start >= len(list) {
-		con.Write([]byte("*0\r\n"))
+		conn.Write([]byte("*0\r\n"))
 		return
 	}
 
 	if stop >= len(list) {
-		stop = len(list)-1
+		stop = len(list) - 1
 	}
 
 	if start > stop {
@@ -115,9 +117,9 @@ func handleLRANGE(args []stringn conn net.Conn) {
 		return
 	}
 
-	elements := list[start: stop+1]
+	elements := list[start : stop+1]
 
-	var sb string.Builder
+	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("*%d\r\n", len(elements)))
 
 	for _, elem := range elements {
@@ -127,32 +129,32 @@ func handleLRANGE(args []stringn conn net.Conn) {
 	conn.Write([]byte(sb.String()))
 }
 
-func handleLPUSH(args []string, conn net.Conn) {
-	if len(args) < 3 {
-		conn.Write([]byte("-ERR wrong number of arguments for 'LPUSH'\r\n"))
-		return
-	}
+// func handleLPUSH(args []string, conn net.Conn) {
+// 	if len(args) < 3 {
+// 		conn.Write([]byte("-ERR wrong number of arguments for 'LPUSH'\r\n"))
+// 		return
+// 	}
 
-	listName := args[1]
-	indexes := args[2:]
+// 	listName := args[1]
+// 	indexes := args[2:]
 
-	mu.Lock()
-	if _, exists := listStore[listName]; !exists {
-		response := make([]string, 0)
-		conn.Write([]byte(response))
-		mu.Unlock()
-		return
-	} else {
-		elements := len(listStore[listName])
-		conn.Write([]byte(fmt.Sprintf("%d\r\n", elements)))
-		for _, idx := range indexes{
-			findValue := listStore[idx]
-			conn.Write([]byte(fmt.Sprintf("%d\r\n", findValue)))
-		}
-		mu.Unlock()
-		return
-	}
-}
+// 	mu.Lock()
+// 	if _, exists := listStore[listName]; !exists {
+// 		response := make([]string, 0)
+// 		conn.Write([]byte)
+// 		mu.Unlock()
+// 		return
+// 	} else {
+// 		elements := len(listStore[listName])
+// 		conn.Write([]byte(fmt.Sprintf("%d\r\n", elements)))
+// 		for _, idx := range indexes {
+// 			findValue := listStore[idx]
+// 			conn.Write([]byte(fmt.Sprintf("%d\r\n", findValue)))
+// 		}
+// 		mu.Unlock()
+// 		return
+// 	}
+// }
 
 func handleRPUSH(args []string, conn net.Conn) {
 	if len(args) < 3 {
@@ -182,8 +184,7 @@ func handleRPUSH(args []string, conn net.Conn) {
 	}
 }
 
-
-func handleSet(args []string, conn net.Conn)  {
+func handleSet(args []string, conn net.Conn) {
 
 	if len(args) < 3 {
 		conn.Write([]byte("-ERR wrong numebr of arguments for 'SET'\r\n"))
@@ -206,42 +207,42 @@ func handleSet(args []string, conn net.Conn)  {
 	mu.Lock()
 	store[key] = entry{value: value, expiresAt: expiresAt}
 	mu.Unlock()
-		
+
 	conn.Write([]byte("+OK\r\n"))
-	
+
 }
 
 func handleGET(args []string, conn net.Conn) {
-    if len(args) < 2 {
-        conn.Write([]byte("-ERR wrong number of arguments for 'GET'\r\n"))
-        return
-    }
+	if len(args) < 2 {
+		conn.Write([]byte("-ERR wrong number of arguments for 'GET'\r\n"))
+		return
+	}
 
-    key := args[1]
+	key := args[1]
 
-    mu.RLock()
-    e, exists := store[key]
-    mu.RUnlock()
+	mu.RLock()
+	e, exists := store[key]
+	mu.RUnlock()
 
-    if !exists {
-        conn.Write([]byte("$-1\r\n"))
-        return
-    }
+	if !exists {
+		conn.Write([]byte("$-1\r\n"))
+		return
+	}
 
-    if e.expiresAt > 0 && time.Now().UnixMilli() > e.expiresAt {
-        mu.Lock()
-        delete(store, key)
-        mu.Unlock()
-        conn.Write([]byte("$-1\r\n"))
-        return
-    }
+	if e.expiresAt > 0 && time.Now().UnixMilli() > e.expiresAt {
+		mu.Lock()
+		delete(store, key)
+		mu.Unlock()
+		conn.Write([]byte("$-1\r\n"))
+		return
+	}
 
-    // Return bulk string
-    resp := fmt.Sprintf("$%d\r\n%s\r\n", len(e.value), e.value)
-    conn.Write([]byte(resp))
+	// Return bulk string
+	resp := fmt.Sprintf("$%d\r\n%s\r\n", len(e.value), e.value)
+	conn.Write([]byte(resp))
 }
 
-func handleEcho (args []string, conn net.Conn) {
+func handleEcho(args []string, conn net.Conn) {
 	if len(args) >= 2 {
 		msg := args[1]
 		resp := fmt.Sprintf("$%d\r\n%s\r\n", len(msg), msg)
