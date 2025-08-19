@@ -98,7 +98,7 @@ func handleLPOP(args []string, conn net.Conn) {
 	} else {
 		popped := listStore[listName][0]
 		listStore[listName] = listStore[listName][1:]
-		resp := fmt.Sprintf("$%s\r\n", popped)
+		resp := fmt.Sprintf("$%d\r\n%s\r\n", len(popped), popped)
 		conn.Write([]byte(fmt.Sprintf(resp)))
 		mu.Unlock()
 		return
