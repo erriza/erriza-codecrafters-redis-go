@@ -131,33 +131,6 @@ func handleLRANGE(args []string, conn net.Conn) {
 	conn.Write([]byte(sb.String()))
 }
 
-// func handleLPUSH(args []string, conn net.Conn) {
-// 	if len(args) < 3 {
-// 		conn.Write([]byte("-ERR wrong number of arguments for 'LPUSH'\r\n"))
-// 		return
-// 	}
-
-// 	listName := args[1]
-// 	indexes := args[2:]
-
-// 	mu.Lock()
-// 	if _, exists := listStore[listName]; !exists {
-// 		response := make([]string, 0)
-// 		conn.Write([]byte)
-// 		mu.Unlock()
-// 		return
-// 	} else {
-// 		elements := len(listStore[listName])
-// 		conn.Write([]byte(fmt.Sprintf("%d\r\n", elements)))
-// 		for _, idx := range indexes {
-// 			findValue := listStore[idx]
-// 			conn.Write([]byte(fmt.Sprintf("%d\r\n", findValue)))
-// 		}
-// 		mu.Unlock()
-// 		return
-// 	}
-// }
-
 func handleRPUSH(args []string, conn net.Conn) {
 	if len(args) < 3 {
 		conn.Write([]byte("-ERR wrong number of arguments for 'RPUSH'\r\n"))
