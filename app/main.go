@@ -70,9 +70,39 @@ func handleConnection(conn net.Conn) {
 			handleRPUSH(args, conn)
 		case "LRANGE":
 			handleLRANGE(args, conn)
+		case "LPUSH":
+			handleLPUSH(args, conn)
 		default:
 			conn.Write([]byte("-ERR unknown command\r\n"))
 		}
+	}
+}
+
+func handleLPUSH(args []string, conn net.Conn) {
+	if len(args) < 3 {
+		conn.Write([]byte("-ERR wrong number of arguments for 'LPUSH'\r\n"))
+		return
+	}
+
+	listName := args[1]
+	values := args[2:]
+
+	mu.Lock()
+	if _, exists := listStore[listName]; !exists {
+		listStore[listName] = make([]string, 0)
+		listStore[listName] = append(listStore[listName], values...)
+		elements := len(listStore[listName])
+		conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
+		mu.Unlock()
+		return
+	} else {
+		for _, value := range values {
+			listStore[listName] = append([]string{value}, listStore[listName]...)
+		}
+		elements := len(listStore[listName])
+		conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
+		mu.Unlock()
+		return
 	}
 }
 
