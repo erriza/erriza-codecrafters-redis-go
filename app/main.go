@@ -68,8 +68,6 @@ func handleConnection(conn net.Conn) {
 			handleGET(args, conn)
 		case "RPUSH":
 			handleRPUSH(args, conn)
-		// case "LPUSH":
-		// 	handleLPUSH(args, conn)
 		case "LRANGE":
 			handleLRANGE(args, conn)
 		default:
