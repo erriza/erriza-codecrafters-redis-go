@@ -88,7 +88,7 @@ func handleLRANGE(args []string, conn net.Conn) {
 
 	fmt.Println("args start stop", start, stop)
 
-	if err1 != nil || err2 != nil || start < 0 || stop < 0 {
+	if err1 != nil || err2 != nil {
 		conn.Write([]byte("-ERR invalid index\r\n"))
 		return
 	}
