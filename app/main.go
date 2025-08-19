@@ -112,10 +112,10 @@ func handleLRANGE(args []string, conn net.Conn) {
 		stop = len(list) - 1
 	}
 
-	if start > stop {
-		conn.Write([]byte("*0\r\n"))
-		return
-	}
+	// if start > stop {
+	// 	conn.Write([]byte("*0\r\n"))
+	// 	return
+	// }
 
 	if start < 0 {
 		start = max(len(list)+start, 0)
