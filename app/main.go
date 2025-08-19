@@ -125,7 +125,7 @@ func handleLRANGE(args []string, conn net.Conn) {
 	sb.WriteString(fmt.Sprintf("*%d\r\n", len(elements)))
 
 	for _, elem := range elements {
-		sb.WriteString(fmt.Sprintf("%d\r\n%s\r\n", len(elem), elem))
+		sb.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(elem), elem))
 	}
 
 	conn.Write([]byte(sb.String()))
