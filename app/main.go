@@ -117,6 +117,10 @@ func handleLRANGE(args []string, conn net.Conn) {
 
 	elements := list[start : stop+1]
 
+	fmt.Println("idx", start, stop)
+	fmt.Println("ele idx", list[start], list[stop])
+	fmt.Println("elements", elements)
+
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("*%d\r\n", len(elements)))
 
