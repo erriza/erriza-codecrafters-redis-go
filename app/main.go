@@ -102,55 +102,56 @@ func handleLPOP(args []string, conn net.Conn) {
 	}
 
 	mu.Lock()
-		
+
 	if _, exists := listStore[listName]; !exists {
 		conn.Write([]byte("$-1\r\n"))
 		mu.Unlock()
 		return
 	} else {
-		if valtoRemove > len(listStore[listName]) {
-		var arrResp []string
-		lenght := len(listStore[listName]
+			if valtoRemove > len(listStore[listName]) {
+			var arrResp []string
+			lenght := len(listStore[listName]
 
-		for i := 0; i < length; i++ {
-			popped := listStore[listName][0]
-			listStore[listName] = listStore[listName][1:]
-			arrResp = append(arrResp, popped)
-		}
-		
-		if len(listStore[listName]) == 0 {
-			delete(listStore, listName)
-		}
+			for i := 0; i < length; i++ {
+				popped := listStore[listName][0]
+				listStore[listName] = listStore[listName][1:]
+				arrResp = append(arrResp, popped)
+			}
+			
+			if len(listStore[listName]) == 0 {
+				delete(listStore, listName)
+			}
 
-		var sb strings.Builder
-		sb.WriteString(fmt.Sprintf("*%d\r\n", len(arrResp))
-		for _, elem := range arrResp {
-			sb.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(elem), elem))
-		}
-		finalRespString := sb.String()
-		conn.Write([]byte(finalRespString)
+			var sb strings.Builder
+			sb.WriteString(fmt.Sprintf("*%d\r\n", len(arrResp))
+			for _, elem := range arrResp {
+				sb.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(elem), elem))
+			}
+			finalRespString := sb.String()
+			conn.Write([]byte(finalRespString)
 
-		mu.Unlock()
-		return
-	} else {
+			mu.Unlock()
+			return
+		} else {
 		// arrResp := make([]string, len(valtoRemove))
-		var arrResp []string
-		for i := 0; i < valtoRemove; i++ {
-			popped := listStore[listName][0]
-			listStore[listName] = listStore[listName][1:]
-			arrResp = append(arrResp, popped)
-		}
+			var arrResp []string
+			for i := 0; i < valtoRemove; i++ {
+				popped := listStore[listName][0]
+				listStore[listName] = listStore[listName][1:]
+				arrResp = append(arrResp, popped)
+			}
 
-		fmt.Println("arrResp", arrResp)
-		var sb strings.Builde
-		sb.WriteString(fmt.Sprintf("*%d\r\n", len(arrResp))
-		for _, elem := range arrResp {
-			sb.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(elem), elem))
+			fmt.Println("arrResp", arrResp)
+			var sb strings.Builde
+			sb.WriteString(fmt.Sprintf("*%d\r\n", len(arrResp))
+			for _, elem := range arrResp {
+				sb.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(elem), elem))
+			}
+			finalRespString := sb.String()
+			conn.Write([]byte(finalRespString))
+			mu.Unlock()
+			return
 		}
-		finalRespString := sb.String()
-		conn.Write([]byte(finalRespString))
-		mu.Unlock()
-		return
 	}
 }
 
