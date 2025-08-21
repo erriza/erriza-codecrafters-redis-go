@@ -82,91 +82,6 @@ func handleConnection(conn net.Conn) {
 	}
 }
 
-// func handleLPOP(args []string, conn net.Conn) {
-	
-// 	if len(args) < 2 || len(args) > 3 {
-// 		conn.Write([]byte("-ERR wrong number of arguments for 'LPOP'\r\n"))
-// 		return
-// 	}
-
-// 	listName := args[1]
-	
-
-// 	if len(args) == 2 {
-// 		mu.Lock()
-// 		defer mu.Unlock()
-// 		 list, exists := listStore[listName]
-// 		 if !exists || len(list) == 0 {
-// 			conn.Write([]byte("$-1\r\n"))
-// 		 }
-// 		 popped := list[0]
-// 		 listStore[listName] = list[1:]
-
-// 	}
-// 	valtoRemove := 1
-// 	var err error
-
-// 	if len(args) == 3 {
-// 		valtoRemove, err = strconv.Atoi(args[2])
-// 	}
-	
-// 	if err != nil  {
-// 		conn.Write([]byte("-ERR invalid range to remove\r\n"))
-// 		return
-// 	}
-
-// 	mu.Lock()
-
-// 	if _, exists := listStore[listName]; !exists {
-// 		conn.Write([]byte("$-1\r\n"))
-// 		mu.Unlock()
-// 		return
-// 	} else {
-// 			if valtoRemove > len(listStore[listName]) {
-// 			var arrResp []string
-// 			lenght := len(listStore[listName])
-
-// 			for i := 0; i < lenght; i++ {
-// 				popped := listStore[listName][0]
-// 				listStore[listName] = listStore[listName][1:]
-// 				arrResp = append(arrResp, popped)
-// 			}
-			
-// 			if len(listStore[listName]) == 0 {
-// 				delete(listStore, listName)
-// 			}
-
-// 			var sb strings.Builder
-// 			sb.WriteString(fmt.Sprintf("*%d\r\n", len(arrResp)))
-// 			for _, elem := range arrResp {
-// 				sb.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(elem), elem))
-// 			}
-// 			finalRespString := sb.String()
-// 			conn.Write([]byte(finalRespString))
-
-// 			mu.Unlock()
-// 			return
-// 		} else {
-// 		// arrResp := make([]string, len(valtoRemove))
-// 			var arrResp []string
-// 			for i := 0; i < valtoRemove; i++ {
-// 				popped := listStore[listName][0]
-// 				listStore[listName] = listStore[listName][1:]
-// 				arrResp = append(arrResp, popped)
-// 			}
-
-// 			var sb strings.Builder
-// 			sb.WriteString(fmt.Sprintf("*%d\r\n", len(arrResp)))
-// 			for _, elem := range arrResp {
-// 				sb.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(elem), elem))
-// 			}
-// 			finalRespString := sb.String()
-// 			conn.Write([]byte(finalRespString))
-// 			mu.Unlock()
-// 			return
-// 		}
-// 	}
-// }
 
 func handleLPOP(args []string, conn net.Conn) {
 
@@ -177,34 +92,28 @@ func handleLPOP(args []string, conn net.Conn) {
 
 	listName := args[1]
 	
-    // FIX: This entire block handles the simple "LPOP key" case
 	if len(args) == 2 {
 		mu.Lock()
 		defer mu.Unlock()
 
 		list, exists := listStore[listName]
 		if !exists || len(list) == 0 {
-			conn.Write([]byte("$-1\r\n")) // Non-existent or empty list
+			conn.Write([]byte("$-1\r\n")) 
 			return
 		}
 
-		// Pop the first element
 		popped := list[0]
 		listStore[listName] = list[1:]
 
-		// If the list is now empty, remove the key
 		if len(listStore[listName]) == 0 {
 			delete(listStore, listName)
 		}
 
-		// Respond with a single BULK STRING, not an array
 		resp := fmt.Sprintf("$%d\r\n%s\r\n", len(popped), popped)
 		conn.Write([]byte(resp))
 		return
 	}
 
-    // FIX: This entire block handles the "LPOP key count" case.
-    // Your previous logic was mostly correct for this, so we keep it here.
 	if len(args) == 3 {
 		valtoRemove, err := strconv.Atoi(args[2])
 		if err != nil {
@@ -216,11 +125,10 @@ func handleLPOP(args []string, conn net.Conn) {
 		defer mu.Unlock()
 
 		if _, exists := listStore[listName]; !exists || len(listStore[listName]) == 0 {
-			conn.Write([]byte("*0\r\n")) // For a count, return an empty array if key doesn't exist
+			conn.Write([]byte("*0\r\n"))
 			return
 		}
 		
-        // Determine the actual number of items to pop
 		numToPop := valtoRemove
 		if numToPop > len(listStore[listName]) {
 			numToPop = len(listStore[listName])
@@ -319,7 +227,6 @@ func handleLRANGE(args []string, conn net.Conn) {
 	list, exists := listStore[listName]
 	mu.RUnlock()
 
-	//list does not extis
 	if !exists {
 		conn.Write([]byte("*0\r\n"))
 		return
