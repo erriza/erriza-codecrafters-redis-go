@@ -12,7 +12,6 @@ import (
 	"time"
 )
 
-// Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
 var _ = net.Listen
 var _ = os.Exit
 
@@ -87,7 +86,7 @@ func handleConnection(conn net.Conn) {
 }
 
 func handleBLPOP (args []string, conn net.Conn) {
-	if len(argss) != 3 {
+	if len(args) != 3 {
 		conn.Write([]byte("-ERR wrong number of arguments for 'BLPOP' command\r\n"))
 		return
 	}
