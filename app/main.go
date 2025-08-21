@@ -92,6 +92,13 @@ func handleBLPOP (args []string, conn net.Conn) {
 	}
 
 	listName := args[1]
+	timeout, err := strconv.ParseFloat(args[2], 64)
+	if err != nil {
+		conn.Write([]byte("-ERR timeout is not a float or out of range"))
+		return
+	}
+
+	timeoutDuration := time.Duration(timeout * float64(time.Second))
 
 	for  {
 		mu.Lock()
@@ -119,7 +126,31 @@ func handleBLPOP (args []string, conn net.Conn) {
 		blockingClients[listName] = append(blockingClients[listName], waitChan)
 		bmu.Unlock()
 
-		<-waitChan
+		var timeChan <-chan time.Time
+		if timeout > 0 {
+			timeChan = time.After(timeoutDuration)
+		}
+
+		select {
+			case <-waitChan:
+				continue
+			case <-timerChan:
+				conn.Write([]byte("$-1\r\n"))
+
+				bmu.Lock()
+				waiters := blockingClients[listName]
+				newWaiters := make([]chan struct{}, 0, len(wait))
+				for _, cha := range waiters {
+					if ch != waitChan {
+						newWaiters = append(newWaiters, ch)
+					}
+				}
+				if len(newWaiters) == 0 {
+					blockingClients[listName] = newWaiters
+				}
+				bmu.Unlock()
+				return
+		}
 	}
 }
 
