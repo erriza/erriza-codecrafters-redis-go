@@ -134,13 +134,13 @@ func handleBLPOP (args []string, conn net.Conn) {
 		select {
 			case <-waitChan:
 				continue
-			case <-timerChan:
+			case <-timeChan:
 				conn.Write([]byte("$-1\r\n"))
 
 				bmu.Lock()
 				waiters := blockingClients[listName]
-				newWaiters := make([]chan struct{}, 0, len(wait))
-				for _, cha := range waiters {
+				newWaiters := make([]chan struct{}, 0, len(waiters))
+				for _, ch := range waiters {
 					if ch != waitChan {
 						newWaiters = append(newWaiters, ch)
 					}
