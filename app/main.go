@@ -89,7 +89,7 @@ func handleLPOP(args []string, conn net.Conn) {
 	}
 
 	listName := args[1]
-	valtoRemove, err := strcon.Atoi(args[2])
+	valtoRemove, err := strconv.Atoi(args[2])
 
 	if err != nil  {
 		conn.Write([]byte("-ERR invalid range to remove\r\n"))
