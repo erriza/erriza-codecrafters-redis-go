@@ -91,6 +91,7 @@ func handleLPOP(args []string, conn net.Conn) {
 
 	listName := args[1]
 	valtoRemove := 1
+	var err error
 
 	if len(args) == 3 {
 		valtoRemove, err = strconv.Atoi(args[2])
@@ -110,9 +111,9 @@ func handleLPOP(args []string, conn net.Conn) {
 	} else {
 			if valtoRemove > len(listStore[listName]) {
 			var arrResp []string
-			lenght := len(listStore[listName]
+			lenght := len(listStore[listName])
 
-			for i := 0; i < length; i++ {
+			for i := 0; i < lenght; i++ {
 				popped := listStore[listName][0]
 				listStore[listName] = listStore[listName][1:]
 				arrResp = append(arrResp, popped)
@@ -123,12 +124,12 @@ func handleLPOP(args []string, conn net.Conn) {
 			}
 
 			var sb strings.Builder
-			sb.WriteString(fmt.Sprintf("*%d\r\n", len(arrResp))
+			sb.WriteString(fmt.Sprintf("*%d\r\n", len(arrResp)))
 			for _, elem := range arrResp {
 				sb.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(elem), elem))
 			}
 			finalRespString := sb.String()
-			conn.Write([]byte(finalRespString)
+			conn.Write([]byte(finalRespString))
 
 			mu.Unlock()
 			return
@@ -143,7 +144,7 @@ func handleLPOP(args []string, conn net.Conn) {
 
 			fmt.Println("arrResp", arrResp)
 			var sb strings.Builde
-			sb.WriteString(fmt.Sprintf("*%d\r\n", len(arrResp))
+			sb.WriteString(fmt.Sprintf("*%d\r\n", len(arrResp)))
 			for _, elem := range arrResp {
 				sb.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(elem), elem))
 			}
