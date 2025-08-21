@@ -24,7 +24,7 @@ type entry struct {
 var (
 	store     = make(map[string]entry)
 	listStore = make(map[string][]string)
-	blockingClients = make(map[string])[]chan string)
+	blockingClients = make(map[string][]chan string)
 	bmu		  sync.Mutex
 	mu        sync.RWMutex
 )
