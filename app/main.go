@@ -142,7 +142,6 @@ func handleLPOP(args []string, conn net.Conn) {
 				arrResp = append(arrResp, popped)
 			}
 
-			fmt.Println("arrResp", arrResp)
 			var sb strings.Builder
 			sb.WriteString(fmt.Sprintf("*%d\r\n", len(arrResp)))
 			for _, elem := range arrResp {
