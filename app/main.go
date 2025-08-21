@@ -237,8 +237,8 @@ func handleLPUSH(args []string, conn net.Conn) {
 	// This logic is specific to LPUSH (prepending to the slice).
 	mu.Lock()
 	// To push multiple values correctly, iterate backwards and prepend one by one.
-	for i := len(values) - 1; i >= 0; i-- {
-		listStore[listName] = append([]string{values[i]}, listStore[listName]...)
+	for _, value := range values {
+		listStore[listName] = append([]string{value}, listStore[listName]...)
 	}
 	elements := len(listStore[listName])
 	mu.Unlock()
