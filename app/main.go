@@ -23,7 +23,7 @@ type entry struct {
 var (
 	store     = make(map[string]entry)
 	listStore = make(map[string][]string)
-	blockingClients = make(map[string][]chan struct{}) // Changed from chan string
+	blockingClients = make(map[string][]chan struct{})
 	bmu       sync.Mutex
 	mu        sync.RWMutex
 )
@@ -119,11 +119,7 @@ func handleBLPOP (args []string, conn net.Conn) {
 		blockingClients[listName] = append(blockingClients[listName], waitChan)
 		bmu.Unlock()
 
-		// wait for a value to be sent to the channel
 		<-waitChan
-
-		// response := fmt.Sprintf("*2\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", len(listName), listName, len(poppedValue), poppedValue)
-		// conn.Write([]byte(response))
 	}
 }
 
@@ -233,100 +229,30 @@ func handleLPUSH(args []string, conn net.Conn) {
 	listName := args[1]
 	values := args[2:]
 
-	// 1. Add all items to the list store first.
-	// This logic is specific to LPUSH (prepending to the slice).
+
 	mu.Lock()
-	// To push multiple values correctly, iterate backwards and prepend one by one.
 	for _, value := range values {
 		listStore[listName] = append([]string{value}, listStore[listName]...)
 	}
 	elements := len(listStore[listName])
 	mu.Unlock()
 
-	// 2. Now, check if anyone is waiting and notify them.
-	// THIS BLOCK IS IDENTICAL TO THE ONE IN handleRPUSH.
+
 	bmu.Lock()
 	waiters, hasWaiters := blockingClients[listName]
 	if hasWaiters && len(waiters) > 0 {
-		// There is a client waiting! Get the oldest one.
 		waiterChan := waiters[0]
 		
-		// Remove them from the queue.
 		blockingClients[listName] = waiters[1:]
 		if len(blockingClients[listName]) == 0 {
 			delete(blockingClients, listName)
 		}
 
-		// Send the signal to unblock them.
-		// Use a non-blocking send in a goroutine to be safe.
 		go func() { waiterChan <- struct{}{} }()
 	}
 	bmu.Unlock()
 
-	// 3. Finally, send the response to the LPUSH client.
 	conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
-	// if len(args) < 3 {
-	// 	conn.Write([]byte("-ERR wrong number of arguments for 'LPUSH'\r\n"))
-	// 	return
-	// }
-
-	// listName := args[1]
-	// values := args[2:]
-
-	// bmu.Lock()
-	// waiters, hasWaiters := blockingClients[listName]
-
-	// if hasWaiters && len(waiters) > 0 {
-	// 	waiterChan := waiters[0]
-
-	// 	blockingClients[listName] = waiters[1:]
-
-	// 	if len(blockingClients[listName]) == 0 {
-	// 		delete(blockingClients, listName)
-	// 	}
-
-	// 	bmu.Unlock()
-
-	// 	waiterChan <- values[0]
-
-	// 	if len(values) > 1 {
-	// 		mu.Lock()
-	// 		listStore[listName] = append(listStore[listName], values[1:]...)
-	// 		mu.Unlock()
-	// 	}
-
-	// 	mu.RLock()
-	// 	finalLen := len(listStore[listName])
-	// 	mu.RUnlock()
-	// 	conn.Write([]byte(fmt.Sprintf(":%d\r\n", finalLen+1)))
-	// 	return
-	// }
-
-	// bmu.Unlock()
-
-	// mu.Lock()
-	// listStore[listName] = append(listStore[listName], values...)
-	// elements := len(listStore[listName])
-	// mu.Unlock()
-	// conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
-
-	// mu.Lock()
-	// if _, exists := listStore[listName]; !exists {
-	// 	listStore[listName] = make([]string, 0)
-	// 	listStore[listName] = append(listStore[listName], values...)
-	// 	elements := len(listStore[listName])
-	// 	conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
-	// 	mu.Unlock()
-	// 	return
-	// } else {
-	// 	for _, value := range values {
-	// 		listStore[listName] = append([]string{value}, listStore[listName]...)
-	// 	}
-	// 	elements := len(listStore[listName])
-	// 	conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
-	// 	mu.Unlock()
-	// 	return
-	// }
 }
 
 
@@ -414,25 +340,9 @@ func handleRPUSH(args []string, conn net.Conn) {
 	}
 	bmu.Unlock()
 
-	// 3. Finally, send the response to the RPUSH client.
 	conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
 
-	// if _, exists := listStore[listName]; !exists {
-	// 	listStore[listName] = make([]string, 0)
-	// 	listStore[listName] = append(listStore[listName], values...)
-	// 	elements := len(listStore[listName])
-	// 	conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
-	// 	mu.Unlock()
-	// 	return
-	// } else {
-	// 	for _, value := range values {
-	// 		listStore[listName] = append(listStore[listName], value)
-	// 	}
-	// 	elements := len(listStore[listName])
-	// 	conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
-	// 	mu.Unlock()
-	// 	return
-	// }
+
 }
 
 func handleSet(args []string, conn net.Conn) {
