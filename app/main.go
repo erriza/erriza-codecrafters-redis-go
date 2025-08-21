@@ -89,19 +89,29 @@ func handleLPOP(args []string, conn net.Conn) {
 	}
 
 	listName := args[1]
-
+	valtoRemove := args[2]
+	
 	mu.Lock()
 	if _, exists := listStore[listName]; !exists {
 		conn.Write([]byte("$-1\r\n"))
 		mu.Unlock()
 		return
 	} else {
-		popped := listStore[listName][0]
-		listStore[listName] = listStore[listName][1:]
-		resp := fmt.Sprintf("$%d\r\n%s\r\n", len(popped), popped)
-		conn.Write([]byte(resp))
-		mu.Unlock()
-		return
+		if valtoRemove > len(listStore[listName]) {
+			arrResp := make([]int, len(listStore[listName]))
+			conn.Write([]byte(arrResp))
+			return
+		} else {
+			for i := 0; i < valtoRemove; i++ {
+				popped := listStore[listName][0]
+				listStore[listName] = listStore[listName][1:]
+				resp := fmt.Sprintf("$%d\r\n%s\r\n", len(popped), popped)
+				conn.Write([]byte(resp))
+			}
+			mu.Unlock()
+			return
+		}
+
 	}
 }
 
