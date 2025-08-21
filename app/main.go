@@ -113,7 +113,7 @@ func handleBLPOP (args []string, conn net.Conn) {
 		mu.Unlock()
 
 		//create channel to the queue of waiters for this list key
-		waitChan := make(chan string)
+		waitChan := make(chan struct{})
 
 		bmu.Lock()
 		blockingClients[listName] = append(blockingClients[listName], waitChan)
