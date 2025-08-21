@@ -24,6 +24,8 @@ type entry struct {
 var (
 	store     = make(map[string]entry)
 	listStore = make(map[string][]string)
+	blockingClients = make(map[string])[]chan string)
+	bmu		  sync.Mutex
 	mu        sync.RWMutex
 )
 
@@ -76,10 +78,47 @@ func handleConnection(conn net.Conn) {
 			handleLLEN(args, conn)
 		case "LPOP":
 			handleLPOP(args, conn)
+		case "BLPOP":
+			handleBLPOP(args, conn)
 		default:
 			conn.Write([]byte("-ERR unknown command\r\n"))
 		}
 	}
+}
+
+func handleBLPOP (args []string, conn net.Conn) {
+	if len(argss) != 3 {
+		conn.Write([]byte("-ERR wrong number of arguments for 'BLPOP' command\r\n"))
+		return
+	}
+
+	listName := args[1]
+
+	mu.Lock()
+	list, exists := listStore[listName]
+	if exists && len(list) > 0 {
+		popped := list[0]
+		listStore[listName] = list[1:]
+		mu.Unlock()
+
+		response := fmt.Sprintf("*2\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", len(listName), listName, len(popped), popped)
+		conn.Write([]byte(response))
+		return
+	}
+	mu.Unlock()
+
+	//create channel to the queue of waiters for this list key
+	waitChan := make(chan string)
+
+	bmu.Lock()
+	blockingClients[listName] = append(blockingClients[listName], waitChan)
+	bmu.Unlock()
+
+	// wait for a value to be sent to the channel
+	poppedValue := <-waitChan
+
+	response := fmt.Sprintf("*2\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", len(listName), listName, len(poppedValue), poppedValue)
+	conn.Write([]byte(response))
 }
 
 
@@ -178,6 +217,7 @@ func handleLLEN(args []string, conn net.Conn) {
 	}
 }
 
+
 func handleLPUSH(args []string, conn net.Conn) {
 	if len(args) < 3 {
 		conn.Write([]byte("-ERR wrong number of arguments for 'LPUSH'\r\n"))
@@ -187,24 +227,62 @@ func handleLPUSH(args []string, conn net.Conn) {
 	listName := args[1]
 	values := args[2:]
 
-	mu.Lock()
-	if _, exists := listStore[listName]; !exists {
-		listStore[listName] = make([]string, 0)
-		listStore[listName] = append(listStore[listName], values...)
-		elements := len(listStore[listName])
-		conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
-		mu.Unlock()
-		return
-	} else {
-		for _, value := range values {
-			listStore[listName] = append([]string{value}, listStore[listName]...)
+	bmu.Lock()
+	waiters, hasWaiters := blockingClients[listName]
+
+	if hasWaiters && len(waiters) > 0 {
+		waiterChan := waiters[0]
+
+		blockingClients[listName] = waiters[1:]
+
+		if len(blockingClients[listName]) == 0 {
+			delete(blockingClients, listName)
 		}
-		elements := len(listStore[listName])
-		conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
-		mu.Unlock()
+
+		bmu.Unlock()
+
+		waiterChan <- values[0]
+
+		if len(values) > 1 {
+			mu.Lock()
+			listStore[listName] = append(listStore[listName], values[1:]...)
+			mu.Unlock()
+		}
+
+		mu.RLock()
+		finalLen := len(listStore[listName])
+		mu.RUnlock()
+		conn.Write([]byte(fmt.Sprintf(":%d\r\n", finalLen+1)))
 		return
 	}
+
+	bmu.Unlock()
+
+	mu.Lock()
+	listStore[listName] = append(listStore[listName], values...)
+	elements := len(listStore[listName])
+	mu.Unlock()
+	conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
+
+	// mu.Lock()
+	// if _, exists := listStore[listName]; !exists {
+	// 	listStore[listName] = make([]string, 0)
+	// 	listStore[listName] = append(listStore[listName], values...)
+	// 	elements := len(listStore[listName])
+	// 	conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
+	// 	mu.Unlock()
+	// 	return
+	// } else {
+	// 	for _, value := range values {
+	// 		listStore[listName] = append([]string{value}, listStore[listName]...)
+	// 	}
+	// 	elements := len(listStore[listName])
+	// 	conn.Write([]byte(fmt.Sprintf(":%d\r\n", elements)))
+	// 	mu.Unlock()
+	// 	return
+	// }
 }
+
 
 func handleLRANGE(args []string, conn net.Conn) {
 	if len(args) != 4 {
